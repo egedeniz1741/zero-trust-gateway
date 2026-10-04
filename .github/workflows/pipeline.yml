@@ -29,10 +29,18 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Run Bandit SAST
+      - name: Install Dependencies
         run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
           pip install bandit
-          bandit -r . -ll
+
+      - name: Run Bandit SAST
+        run: bandit -r app/ -ll
+
+      
+      - name: Run Automated Security Test Suite (Pytest)
+        run: pytest -v
 
       
       - name: Build Docker Image for Scanning
