@@ -40,7 +40,7 @@ jobs:
 
       
       - name: Run Automated Security Test Suite (Pytest)
-        run: pytest -v
+        run: python -m pytest -v
 
       
       - name: Build Docker Image for Scanning
