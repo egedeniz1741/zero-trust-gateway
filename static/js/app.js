@@ -5,6 +5,15 @@ function logResponse(status, data) {
     logElement.textContent = `HTTP Status: ${status}\n\n` + JSON.stringify(data, null, 2);
 }
 
+async function safeParseResponse(res) {
+    const text = await res.text();
+    try {
+        return JSON.parse(text);
+    } catch (e) {
+        return { error: "Server Error", raw_response: text };
+    }
+}
+
 async function login() {
     const username = document.getElementById("username").value;
     const password = document.getElementById("password").value;
@@ -14,13 +23,12 @@ async function login() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password })
     });
-    const data = await res.json();
+    const data = await safeParseResponse(res);
     logResponse(res.status, data);
 
-    if (res.ok) {
+    if (res.ok && data.access_token) {
         jwtToken = data.access_token;
 
-      
         const payload = JSON.parse(atob(jwtToken.split('.')[1]));
         document.getElementById("user-display").textContent = payload.sub;
 
@@ -37,7 +45,7 @@ async function fetchVault() {
     const res = await fetch("/vault-data", {
         headers: { "Authorization": `Bearer ${jwtToken}` }
     });
-    logResponse(res.status, await res.json());
+    logResponse(res.status, await safeParseResponse(res));
 }
 
 async function purgeLogs() {
@@ -45,7 +53,7 @@ async function purgeLogs() {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${jwtToken}` }
     });
-    logResponse(res.status, await res.json());
+    logResponse(res.status, await safeParseResponse(res));
 }
 
 async function logout() {
@@ -53,9 +61,8 @@ async function logout() {
         method: "POST",
         headers: { "Authorization": `Bearer ${jwtToken}` }
     });
-    logResponse(res.status, await res.json());
+    logResponse(res.status, await safeParseResponse(res));
 
-   
     setTimeout(() => {
         document.getElementById("login-section").classList.remove("hidden");
         document.getElementById("dashboard-section").classList.add("hidden");
