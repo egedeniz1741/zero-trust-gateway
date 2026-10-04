@@ -16,7 +16,7 @@
             <p class="hint-text">Test accounts: <b>alex</b> (admin) or <b>guest</b> (viewer)</p>
             <input type="text" id="username" placeholder="Username (alex / guest)">
             <input type="password" id="password" placeholder="Password">
-            <button class="btn-primary" onclick="login()">Authenticate (Get JWT)</button>
+            <button class="btn-primary" onclick="login()">Authenticate</button>
         </div>
 
     
@@ -26,13 +26,13 @@
                     Logged in as: <b id="user-display"></b>
                     <span id="role-badge" class="badge"></span>
                 </div>
-                <button class="btn-warning" onclick="logout()">Revoke Token (Logout)</button>
+                <button class="btn-warning" onclick="logout()">Logout</button>
             </div>
             <hr class="divider">
             
             <h3>Security Endpoint Tests</h3>
             <button class="btn-primary" onclick="fetchVault()">1. Access Shared Vault (Admin & Viewer)</button>
-            <button class="btn-danger" onclick="purgeLogs()">2. Execute Admin Purge (Admin Only - RBAC)</button>
+            <button class="btn-danger" onclick="purgeLogs()">2. Execute Admin Purge (Admin Only)</button>
         </div>
 
       
