@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zero-Trust Security Gateway</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Zero-Trust API Gateway Control Panel</h1>
+
+        <!-- GİRİŞ EKRANI -->
+        <div id="login-section" class="card">
+            <h3>Authentication Portal</h3>
+            <p class="hint-text">Test accounts: <b>alex</b> (admin) or <b>guest</b> (viewer)</p>
+            <input type="text" id="username" placeholder="Username (alex / guest)">
+            <input type="password" id="password" placeholder="Password">
+            <button class="btn-primary" onclick="login()">Authenticate (Get JWT)</button>
+        </div>
+
+        <!-- KULLANICI VE TEST PANELİ -->
+        <div id="dashboard-section" class="card hidden">
+            <div class="user-header">
+                <div>
+                    Logged in as: <b id="user-display"></b>
+                    <span id="role-badge" class="badge"></span>
+                </div>
+                <button class="btn-warning" onclick="logout()">Revoke Token (Logout)</button>
+            </div>
+            <hr class="divider">
+            
+            <h3>Security Endpoint Tests</h3>
+            <button class="btn-primary" onclick="fetchVault()">1. Access Shared Vault (Admin & Viewer)</button>
+            <button class="btn-danger" onclick="purgeLogs()">2. Execute Admin Purge (Admin Only - RBAC)</button>
+        </div>
+
+        <!-- SUNUCU YANIT EKRANI -->
+        <div class="card">
+            <h3>Gateway Response Log</h3>
+            <pre id="response-log">Waiting for requests...</pre>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
