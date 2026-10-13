@@ -1,51 +1,76 @@
-# Zero-Trust API Gateway
+# Zero-Trust API Gateway & DevSecOps Pipeline
 
-This project is a modular FastAPI microservice built around Zero-Trust security principles. Instead of relying on simple perimeter defense, every request is authenticated, authorized by role, and checked against an active revocation list before reaching the underlying resources.
+A modular FastAPI microservice engineered with Zero-Trust architecture principles. Every incoming request is strictly authenticated, authorized via Role-Based Access Control (RBAC), and verified against a real-time Redis token revocation blocklist before reaching downstream resources.
 
-I built this repository to demonstrate a practical DevSecOps workflow, combining application-level security controls with container hardening and a multi-stage CI validation pipeline.
+---
 
-## System Overview & Design Decisions
+## System Architecture
 
-### Authentication and Stateful Token Revocation
-Standard JWT implementations are stateless, meaning once a token is issued, it remains valid until it expires, even if a user logs out. To solve this without sacrificing JWT performance:
-- Every token is signed (`HS256`) with a 15-minute lifespan and assigned a unique identifier (`jti`).
-- When a user logs out via `/logout`, the token's `jti` is pushed to a **Redis** blacklist with a TTL matching its remaining validity.
-- The authentication dependency (`verify_token`) checks Redis on every incoming request, immediately rejecting revoked tokens with `401 Unauthorized`.
+```mermaid
+flowchart TD
+    Client([Client / Frontend Dashboard]) -->|HTTP Request + Bearer JWT| FastApi[FastAPI Gateway Engine]
 
-### Role-Based Access Control (RBAC)
-Authentication and authorization are decoupled inside `app/security.py`. While any authenticated user (`admin` or `viewer`) can read from `/vault-data`, destructive operations like `/admin/purge-logs` are guarded by a role-checking dependency that enforces `admin` privileges and returns `403 Forbidden` for lower-privileged accounts.
+    subgraph Auth_and_Security ["Security Enforcement Layer"]
+        FastApi -->|1. Check Signature & Expiry| JWTVerify[JWT Engine HS256]
+        FastApi -->|2. Query JTI Blacklist| Redis[(Redis Token Cache)]
+        FastApi -->|3. Check Role admin / viewer| RBAC[RBAC Enforcer]
+    end
 
-### Database & Container Infrastructure
-- **PostgreSQL 15:** Stores user records with **Bcrypt** password hashes (`passlib`). All database interactions use parameterized queries (`psycopg2`) to prevent SQL injection.
-- **Multi-Stage Docker Build:** The `Dockerfile` separates dependency compilation (`builder` stage) from the runtime environment. The final image runs under a non-root user (`appuser`) to minimize the container's attack surface.
-- **Zero Hardcoded Secrets:** All database credentials, Redis hosts, and signing keys are injected via environment variables. `.env` is ignored by Git, and `.env.example` documents the required variables.
+    subgraph Storage_and_Data ["Persistence Layer"]
+        FastApi -->|Parameterized Query| Postgres[(PostgreSQL 15)]
+    end
 
-### Interactive Testing Dashboard
-To make testing easier without relying solely on cURL or Swagger, the root endpoint (`/`) serves a lightweight vanilla JS/CSS control panel (`static/`). It allows switching between `alex` (admin) and `guest` (viewer) accounts to observe RBAC restrictions and Redis token revocation in real time.
+    Redis -.->|Blacklisted JTI| FastApi
+    FastApi -->|401 Unauthorized / 403 Forbidden| Client
+    FastApi -->|200 OK + Secure Payload| Client
+```
 
-## Automated CI Security Pipeline
+---
 
-Every push and pull request to `main` triggers the GitHub Actions workflow (`.github/workflows/devsecops-pipeline.yml`), which acts as a four-step security gate:
+## Automated DevSecOps CI Pipeline
 
-1. **Gitleaks:** Scans the commit history to ensure no secrets or `.env` files were accidentally committed.
-2. **Bandit (SAST):** Performs static analysis on the `app/` directory to catch common Python security issues.
-3. **Pytest Security Suite:** Runs automated tests (`tests/test_security.py`) verifying that unauthenticated requests, tampered tokens, revoked tokens, and unauthorized role escalations are properly blocked.
-4. **Trivy:** Builds the production Docker image in the runner and scans both OS packages and Python libraries for high and critical CVEs.
+Every push and pull request to the `main` branch is validated through an automated 4-stage security gate in GitHub Actions before artifact creation:
 
-## Local Setup
+```mermaid
+flowchart LR
+    Commit[Git Push / PR] --> Gate1[1. Gitleaks<br>Secret Scanning]
+    Gate1 --> Gate2[2. Bandit<br>Python SAST]
+    Gate2 --> Gate3[3. Pytest<br>Security Test Suite]
+    Gate3 --> Gate4[4. Docker Build & Trivy<br>Container CVE Scanner]
+    Gate4 --> Deploy[Deployment Ready]
+```
 
-1. Clone the repository and create your environment file from the template:
+### CI Security Controls Explained
+
+1. **Secret Scanning (Gitleaks):** Scans the entire commit history to block committed credentials, private keys, or API tokens.
+2. **SAST (Bandit):** Static analysis against the Python AST to identify insecure imports, weak cryptographic primitives, or SQL injection vectors.
+3. **Automated Security Tests (Pytest):** Tests role escalation attempts, token tampering, and revoked session rejection.
+4. **Container & Dependency CVE Auditing (Trivy):** Scans the multi-stage Docker image and application libraries for High and Critical CVEs.
+
+---
+
+## Core Security Features
+
+- **Stateful JWT Revocation:** Standard JWTs cannot be revoked without rotating the signing secret. This architecture injects unique `jti` claims and persists blacklisted tokens into Redis with a TTL matching token expiration time upon `/logout`.
+- **RBAC Segmentation:** Complete decoupling of authentication and authorization. Critical administrative routes require explicit role verification.
+- **Container Hardening:** Multi-stage Docker build separating dependencies from runtime. Runs as an unprivileged user (`appuser`) to restrict host-level impact upon container escape attempts.
+- **SQLi Prevention:** Parameterized queries via `psycopg2` preventing injection attacks.
+
+---
+
+## Quick Start
+
+### 1. Prerequisites & Environment Setup
 ```bash
 cp .env.example .env
 ```
 
-2. Build and start the containers (PostgreSQL, Redis, and FastAPI):
+### 2. Run with Docker Compose
 ```bash
-docker compose up --build
+docker compose up --build -d
 ```
 
-3. Once the services are healthy, access the endpoints at:
+### 3. Verify Endpoints
 - **Security Control Panel:** `http://localhost:8000/`
-- **Swagger UI Documentation:** `http://localhost:8000/docs`
-- **Healthcheck Endpoint:** `http://localhost:8000/health`
-
+- **Swagger Documentation:** `http://localhost:8000/docs`
+- **Health Check:** `http://localhost:8000/health`
