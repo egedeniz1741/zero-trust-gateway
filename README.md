@@ -8,21 +8,21 @@ A modular FastAPI microservice engineered with Zero-Trust architecture principle
 
 ```mermaid
 flowchart TD
-    Client([Client / Frontend Dashboard]) -->|HTTP Request + Bearer JWT| FastApi[FastAPI Gateway Engine]
+    Client["Client / Frontend Dashboard"] -->|"HTTP Request + Bearer JWT"| FastApi["FastAPI Gateway Engine"]
 
     subgraph Auth_and_Security ["Security Enforcement Layer"]
-        FastApi -->|1. Check Signature & Expiry| JWTVerify[JWT Engine HS256]
-        FastApi -->|2. Query JTI Blacklist| Redis[(Redis Token Cache)]
-        FastApi -->|3. Check Role admin / viewer| RBAC[RBAC Enforcer]
+        FastApi -->|"1. Check Signature & Expiry"| JWTVerify["JWT Engine (HS256)"]
+        FastApi -->|"2. Query JTI Blacklist"| Redis[("Redis Token Cache")]
+        FastApi -->|"3. Check Role (admin / viewer)"| RBAC["RBAC Enforcer"]
     end
 
     subgraph Storage_and_Data ["Persistence Layer"]
-        FastApi -->|Parameterized Query| Postgres[(PostgreSQL 15)]
+        FastApi -->|"Parameterized Query"| Postgres[("PostgreSQL 15")]
     end
 
-    Redis -.->|Blacklisted JTI| FastApi
-    FastApi -->|401 Unauthorized / 403 Forbidden| Client
-    FastApi -->|200 OK + Secure Payload| Client
+    Redis -.->|"Blacklisted JTI"| FastApi
+    FastApi -->|"401 Unauthorized / 403 Forbidden"| Client
+    FastApi -->|"200 OK + Secure Payload"| Client
 ```
 
 ---
@@ -33,11 +33,11 @@ Every push and pull request to the `main` branch is validated through an automat
 
 ```mermaid
 flowchart LR
-    Commit[Git Push / PR] --> Gate1[1. Gitleaks<br>Secret Scanning]
-    Gate1 --> Gate2[2. Bandit<br>Python SAST]
-    Gate2 --> Gate3[3. Pytest<br>Security Test Suite]
-    Gate3 --> Gate4[4. Docker Build & Trivy<br>Container CVE Scanner]
-    Gate4 --> Deploy[Deployment Ready]
+    Commit["Git Push / PR"] --> Gate1["1. Gitleaks<br/>Secret Scanning"]
+    Gate1 --> Gate2["2. Bandit<br/>Python SAST"]
+    Gate2 --> Gate3["3. Pytest<br/>Security Test Suite"]
+    Gate3 --> Gate4["4. Docker Build & Trivy<br/>Container CVE Scanner"]
+    Gate4 --> Deploy["Deployment Ready"]
 ```
 
 ### CI Security Controls Explained
